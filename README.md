@@ -1,6 +1,6 @@
 # Streaks
 
-A habit tracker with an accountability buddy, built to learn [Convex](https://convex.dev).
+A habit tracker with an accountability buddy, built with [Convex](https://convex.dev).
 
 Log daily habits, watch your streaks grow, and pair with one buddy who sees your progress live and gets nudged when you slip.
 
