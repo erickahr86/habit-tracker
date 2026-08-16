@@ -11,6 +11,8 @@
 import type * as habits from "../habits.js";
 import type * as health from "../health.js";
 import type * as logs from "../logs.js";
+import type * as model_habits from "../model/habits.js";
+import type * as notifications from "../notifications.js";
 
 import type {
   ApiFromModules,
@@ -22,6 +24,8 @@ declare const fullApi: ApiFromModules<{
   habits: typeof habits;
   health: typeof health;
   logs: typeof logs;
+  "model/habits": typeof model_habits;
+  notifications: typeof notifications;
 }>;
 
 /**

@@ -1,6 +1,7 @@
 "use client";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { HabitRow } from "./HabitRow";
 
 export default function Home() {
   const now = new Date();
@@ -19,32 +20,9 @@ export default function Home() {
   return (
     <main className="p-8 max-w-xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold">Today — {today}</h1>
-      {habits.map((h) => {
-        const current = valueFor(h._id);
-        const hit = current >= h.target;
-        return (
-          <div key={h._id} className="border p-4 rounded flex items-center justify-between">
-            <div>
-              <div className="font-semibold">{h.name} {hit && "✅"}</div>
-              <div className="text-sm text-gray-500">
-                {current} / {h.target} {h.unit ?? ""}
-              </div>
-            </div>
-            <input
-              type="number"
-              className="border px-2 py-1 w-24"
-              defaultValue={current}
-              onBlur={(e) =>
-                logHabit({
-                  habitId: h._id,
-                  date: today,
-                  value: Number(e.target.value),
-                })
-              }
-            />
-          </div>
-        );
-      })}
+      {habits.map((h) => (
+        <HabitRow key={h._id} habit={h} today={today} logs={logs} />
+      ))}
     </main>
   );
 }
