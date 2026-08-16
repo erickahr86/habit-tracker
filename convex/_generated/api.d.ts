@@ -8,9 +8,11 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as habits from "../habits.js";
 import type * as health from "../health.js";
+import type * as http from "../http.js";
 import type * as logs from "../logs.js";
 import type * as model_habits from "../model/habits.js";
 import type * as notifications from "../notifications.js";
@@ -22,9 +24,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   crons: typeof crons;
   habits: typeof habits;
   health: typeof health;
+  http: typeof http;
   logs: typeof logs;
   "model/habits": typeof model_habits;
   notifications: typeof notifications;
