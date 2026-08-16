@@ -9,7 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
-import type * as budies from "../budies.js";
+import type * as buddies from "../buddies.js";
 import type * as crons from "../crons.js";
 import type * as habits from "../habits.js";
 import type * as health from "../health.js";
@@ -28,7 +28,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  budies: typeof budies;
+  buddies: typeof buddies;
   crons: typeof crons;
   habits: typeof habits;
   health: typeof health;
