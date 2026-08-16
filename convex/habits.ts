@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { toDateString, daysBefore, hitTarget } from "./model/habits";
 
@@ -64,5 +64,22 @@ export const currentStreak = query({
     }
 
     return streak;
+  },
+});
+
+export const usersWithoutLogsToday = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const today = toDateString(new Date());
+
+    const logs = await ctx.db
+      .query("logs")
+      .withIndex("by_user_and_date", (q) =>
+        q.eq("userId", "demo-user").eq("date", today),
+      )
+      .collect();
+
+    if (logs.length === 0) return ["demo-user"];
+    return [];
   },
 });

@@ -1,5 +1,6 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 export const sendDiscordNudge = internalAction({
   args: { message: v.string() },
@@ -15,5 +16,25 @@ export const sendDiscordNudge = internalAction({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: message }),
     });
+  },
+});
+
+export const checkAndNudge = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const hourUTC = new Date().getUTCHours();
+    // Nudge at 9pm UTC. Later you'd store each user's timezone.
+    if (hourUTC !== 21) return;
+
+    const missing = await ctx.runQuery(
+      internal.habits.usersWithoutLogsToday,
+      {},
+    );
+
+    for (const userId of missing) {
+      await ctx.runAction(internal.notifications.sendDiscordNudge, {
+        message: `Hey ${userId}, you haven't logged your habits today. 🔥`,
+      });
+    }
   },
 });
