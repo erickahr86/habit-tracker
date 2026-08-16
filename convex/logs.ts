@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-
-const DEMO_USER = "demo-user"; // temporary until auth
+import { requireCurrentUserId } from "./model/users";
+import { assertOwnsHabit } from "./model/permissions";
 
 export const logHabit = mutation({
   args: {
@@ -10,7 +10,9 @@ export const logHabit = mutation({
     value: v.number(),
   },
   handler: async (ctx, { habitId, date, value }) => {
-    // If a log already exists for today, overwrite it (upsert)
+    await assertOwnsHabit(ctx, habitId);      // 👈 ownership check
+    const userId = await requireCurrentUserId(ctx);
+
     const existing = await ctx.db
       .query("logs")
       .withIndex("by_habit_and_date", (q) =>
@@ -21,12 +23,7 @@ export const logHabit = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, { value });
     } else {
-      await ctx.db.insert("logs", {
-        habitId,
-        userId: DEMO_USER,
-        date,
-        value,
-      });
+      await ctx.db.insert("logs", { habitId, userId, date, value });
     }
   },
 });
@@ -34,10 +31,11 @@ export const logHabit = mutation({
 export const todayLogs = query({
   args: { date: v.string() },
   handler: async (ctx, { date }) => {
+    const userId = await requireCurrentUserId(ctx);
     return await ctx.db
       .query("logs")
       .withIndex("by_user_and_date", (q) =>
-        q.eq("userId", DEMO_USER).eq("date", date),
+        q.eq("userId", userId).eq("date", date),
       )
       .collect();
   },

@@ -9,12 +9,15 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as budies from "../budies.js";
 import type * as crons from "../crons.js";
 import type * as habits from "../habits.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
 import type * as logs from "../logs.js";
 import type * as model_habits from "../model/habits.js";
+import type * as model_permissions from "../model/permissions.js";
+import type * as model_users from "../model/users.js";
 import type * as notifications from "../notifications.js";
 
 import type {
@@ -25,12 +28,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  budies: typeof budies;
   crons: typeof crons;
   habits: typeof habits;
   health: typeof health;
   http: typeof http;
   logs: typeof logs;
   "model/habits": typeof model_habits;
+  "model/permissions": typeof model_permissions;
+  "model/users": typeof model_users;
   notifications: typeof notifications;
 }>;
 

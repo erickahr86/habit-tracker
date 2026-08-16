@@ -1,8 +1,9 @@
 import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
+import { requireCurrentUserId } from "./model/users";
+import { assertOwnsHabit } from "./model/permissions";
 import { toDateString, daysBefore, hitTarget } from "./model/habits";
-
-const DEMO_USER = "demo-user"; // temporary until auth
 
 export const createHabit = mutation({
   args: {
@@ -16,16 +17,18 @@ export const createHabit = mutation({
     unit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("habits", { ...args, userId: DEMO_USER });
+    const userId = await requireCurrentUserId(ctx);
+    return await ctx.db.insert("habits", { ...args, userId });
   },
 });
 
 export const listHabits = query({
   args: {},
   handler: async (ctx) => {
+    const userId = await requireCurrentUserId(ctx);
     return await ctx.db
       .query("habits")
-      .withIndex("by_user", (q) => q.eq("userId", DEMO_USER))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
   },
 });
@@ -33,6 +36,7 @@ export const listHabits = query({
 export const currentStreak = query({
   args: { habitId: v.id("habits") },
   handler: async (ctx, { habitId }) => {
+    await assertOwnsHabit(ctx, habitId);
     const habit = await ctx.db.get(habitId);
     if (!habit) return 0;
 
@@ -71,15 +75,17 @@ export const usersWithoutLogsToday = internalQuery({
   args: {},
   handler: async (ctx) => {
     const today = toDateString(new Date());
-
-    const logs = await ctx.db
-      .query("logs")
-      .withIndex("by_user_and_date", (q) =>
-        q.eq("userId", "demo-user").eq("date", today),
-      )
-      .collect();
-
-    if (logs.length === 0) return ["demo-user"];
-    return [];
+    const users = await ctx.db.query("users").collect();
+    const missing: Id<"users">[] = [];
+    for (const u of users) {
+      const log = await ctx.db
+        .query("logs")
+        .withIndex("by_user_and_date", (q) =>
+          q.eq("userId", u._id).eq("date", today),
+        )
+        .first();
+      if (!log) missing.push(u._id);
+    }
+    return missing;
   },
 });
