@@ -38,4 +38,10 @@ export default defineSchema({
   })
     .index("by_userA", ["userA"])
     .index("by_userB", ["userB"]),
+
+  summaries: defineTable({
+    userId: v.id("users"),
+    weekStart: v.string(),       // ISO date of the Monday
+    text: v.string(),
+  }).index("by_user_and_week", ["userId", "weekStart"]),
 });

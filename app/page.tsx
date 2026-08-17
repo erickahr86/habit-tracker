@@ -44,6 +44,8 @@ function Dashboard() {
 
   return (
     <main className="p-8 max-w-xl mx-auto space-y-4">
+      <WeeklySummary />
+
       <h1 className="text-2xl font-bold">Today — {today}</h1>
       {habits.map((h) => (
         <HabitRow key={h._id} habit={h} today={today} logs={logs} />
@@ -107,6 +109,20 @@ function BuddySection() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function WeeklySummary() {
+  const summary = useQuery(api.summaries.latestSummary);
+  if (!summary) return null;
+
+  return (
+    <div className="border border-blue-200 bg-blue-50 p-4 rounded">
+      <div className="text-sm font-semibold text-blue-900">
+        Weekly coach — week of {summary.weekStart}
+      </div>
+      <p className="text-sm text-blue-900 mt-1">{summary.text}</p>
     </div>
   );
 }
