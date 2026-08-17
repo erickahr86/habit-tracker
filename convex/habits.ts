@@ -4,6 +4,7 @@ import { Id } from "./_generated/dataModel";
 import { requireCurrentUserId } from "./model/users";
 import { assertOwnsHabit } from "./model/permissions";
 import { toDateString, daysBefore, hitTarget } from "./model/habits";
+import strict from "node:assert/strict";
 
 export const createHabit = mutation({
   args: {
@@ -76,7 +77,7 @@ export const usersWithoutLogsToday = internalQuery({
   handler: async (ctx) => {
     const today = toDateString(new Date());
     const users = await ctx.db.query("users").collect();
-    const missing: Id<"users">[] = [];
+    const missing: string[] = [];
     for (const u of users) {
       const log = await ctx.db
         .query("logs")
@@ -84,7 +85,7 @@ export const usersWithoutLogsToday = internalQuery({
           q.eq("userId", u._id).eq("date", today),
         )
         .first();
-      if (!log) missing.push(u._id);
+      if (!log) missing.push(u.name?.toString() ?? "Unknown user");
     }
     return missing;
   },

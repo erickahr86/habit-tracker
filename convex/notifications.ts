@@ -31,9 +31,9 @@ export const checkAndNudge = internalAction({
       {},
     );
 
-    for (const userId of missing) {
+    for (const name of missing) {
       await ctx.runAction(internal.notifications.sendDiscordNudge, {
-        message: `Hey ${userId}, you haven't logged your habits today. 🔥`,
+        message: `Hey ${name}, you haven't logged your habits today. 🔥`,
       });
     }
   },
