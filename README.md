@@ -1,159 +1,163 @@
 # Streaks
 
-A habit tracker with an accountability buddy, built with [Convex](https://convex.dev).
+A habit tracker with an accountability buddy, built on [Convex](https://convex.dev).
 
-Log daily habits, watch your streaks grow, and pair with one buddy who sees your progress live and gets nudged when you slip.
+Define habits, log them daily, watch streaks build, and pair with one accountability buddy who can see your progress (without your raw numbers) and gets nudged with you when you slip. A weekly AI coach summarizes your patterns every Sunday.
 
 ## Screenshots
 
 ![Streaks dashboard](docs/screenshot.png)
 
-## Stack
+## Features
 
-- **Backend:** Convex (reactive database, server functions, scheduled jobs)
-- **Frontend:** Next.js 15 (App Router) + React + TypeScript
-- **Styling:** Tailwind CSS
+- **Custom habits** — numeric (steps), duration (sleep hours), or boolean (took vitamins) targets.
+- **Daily logging** with type-appropriate controls (steppers, toggle, numeric input).
+- **Live streaks** — consecutive-day counts computed reactively, no polling.
+- **Accountability buddy** — invite-code pairing; your buddy sees hit/miss status per habit, not your raw values.
+- **Weekly AI coach** — a Gemini-generated summary of your week's patterns, posted every Sunday via cron.
+- **Missed-log nudges** — an hourly cron pings a Discord webhook for anyone who hasn't logged that day.
+- **GitHub sign-in** via Convex Auth.
+- Fully reactive UI — every screen updates live across tabs/devices with no manual refresh.
 
-## Project status
+## Tech stack
 
-Built incrementally over three days to exercise every major Convex primitive.
+| Layer      | Choice                                                             |
+|------------|---------------------------------------------------------------------|
+| Backend    | [Convex](https://convex.dev) — database, server functions, cron jobs, auth |
+| Frontend   | Next.js (App Router) + React + TypeScript                          |
+| Styling    | Tailwind CSS v4 + [shadcn/ui](https://ui.shadcn.com) (Radix primitives) |
+| Auth       | [Convex Auth](https://labs.convex.dev/auth) (GitHub OAuth)          |
+| AI         | Google Gemini (`@google/generative-ai`) for weekly summaries        |
+| Icons      | [lucide-react](https://lucide.dev)                                  |
 
-- [x] **Day 1** — Foundations: schema, queries, mutations, reactive UI
-- [ ] **Day 2** — Streaks (computed reactive queries), cron jobs, actions, external notifications
-- [ ] **Day 3** — Auth (Clerk), buddy pairing, permission helpers, AI-generated weekly summary
+## Prerequisites
 
-## What works today (end of Day 1)
-
-- Define custom habits of three types: `numeric` (e.g. steps), `duration` (e.g. sleep hours), `boolean` (e.g. took vitamins).
-- Log a value for each habit for the current day.
-- Values persist in Convex and sync live across all open clients — change a value in one browser window and watch it update in another instantly.
-- Auth is stubbed with a hardcoded `demo-user`; real auth comes on Day 3.
-
-## Project structure
-
-streaks/
-├── convex/
-│ ├── _generated/ # Auto-generated types and API — do not edit
-│ ├── schema.ts # Tables: habits, logs (+ indexes)
-│ └── habits.ts # createHabit, logHabit, listHabits, todayLogs
-├── app/
-│ ├── layout.tsx # Wraps app in <Providers>
-│ ├── providers.tsx # ConvexProvider (Client Component)
-│ └── page.tsx # Daily log UI
-├── .env.local # NEXT_PUBLIC_CONVEX_URL (created by npx convex dev)
-└── package.json
-
-
-The split to remember: **everything in `convex/` runs on Convex's servers.** Everything in `app/` runs in the browser (or on Next's server for SSR). The bridge is the auto-generated `api` object plus the `useQuery` / `useMutation` hooks.
-
-## Data model
-
-Two tables so far:
-
-**`habits`** — one row per habit the user tracks.
-
-| field    | type                                    | notes                          |
-|----------|-----------------------------------------|--------------------------------|
-| userId   | string                                  | Hardcoded `demo-user` for now  |
-| name     | string                                  | "Steps", "Sleep", "Vitamins"   |
-| type     | `"numeric" \| "duration" \| "boolean"`  | Union validator                |
-| target   | number                                  | e.g. 8000, 7, 1                |
-| unit     | string (optional)                       | "steps", "hours"               |
-
-Index: `by_user` on `[userId]`.
-
-**`logs`** — one row per habit per day.
-
-| field   | type          | notes                       |
-|---------|---------------|-----------------------------|
-| habitId | id("habits")  | Foreign reference           |
-| userId  | string        | Denormalized for fast query |
-| date    | string        | ISO date, e.g. `2026-08-13` |
-| value   | number        | Booleans stored as 0 or 1   |
-
-Indexes: `by_habit_and_date` on `[habitId, date]`, `by_user_and_date` on `[userId, date]`.
-
-**Design notes:**
-- `date` is a `YYYY-MM-DD` string, not a timestamp — makes "today's logs" trivial and avoids timezone bugs at MVP scope.
-- One log per habit per day. `logHabit` upserts: it patches an existing row for the day or inserts a new one.
-- Indexes are declared upfront because per the Zen of Convex, you use `.withIndex()`, not `.filter()`, for anything that scales.
-
-## Backend functions
-
-All live in `convex/habits.ts`.
-
-| Function       | Kind     | Purpose                                    |
-|----------------|----------|--------------------------------------------|
-| `createHabit`  | mutation | Insert a new habit for the demo user       |
-| `logHabit`     | mutation | Upsert today's value for a given habit     |
-| `listHabits`   | query    | All habits for the current user            |
-| `todayLogs`    | query    | All logs for a given date, current user    |
-
-Mutations are automatically transactional — no `BEGIN`/`COMMIT`. Queries are pure and reactive — subscribing clients get pushed updates when underlying data changes.
+- Node.js 20+
+- A free [Convex](https://convex.dev) account
+- A [GitHub OAuth App](https://github.com/settings/developers) for sign-in
+- (Optional) A [Google AI Studio](https://aistudio.google.com/) API key, for weekly AI summaries
+- (Optional) A Discord webhook URL, for missed-log nudges
 
 ## Getting started
 
-**Prerequisites:** Node 18+, a Convex account (free — sign up at convex.dev).
+### 1. Clone and install
 
 ```bash
-# Install deps
+git clone <this-repo-url>
+cd habit-tracker
 npm install
+```
 
-# First-time setup: creates a Convex project, writes .env.local
+### 2. Set up Convex
+
+```bash
 npx convex dev
 ```
 
-Then in a second terminal:
+On first run this creates a Convex project (or links an existing one), and writes `NEXT_PUBLIC_CONVEX_URL` / `CONVEX_DEPLOYMENT` into `.env.local`. **Keep this command running** in its own terminal while you develop — it watches `convex/`, pushes function changes live, and regenerates the typed `api` client.
+
+### 3. Configure GitHub sign-in
+
+Create a [GitHub OAuth App](https://github.com/settings/developers):
+
+- **Homepage URL:** `http://localhost:3000`
+- **Authorization callback URL:** the value printed by `npx convex dev` as your deployment's site URL, suffixed with `/api/auth/callback/github` (e.g. `https://<your-deployment>.convex.site/api/auth/callback/github`)
+
+Then set the resulting credentials as Convex environment variables:
+
+```bash
+npx convex env set AUTH_GITHUB_ID <client-id>
+npx convex env set AUTH_GITHUB_SECRET <client-secret>
+```
+
+### 4. (Optional) Weekly AI summaries and Discord nudges
+
+```bash
+npx convex env set GEMINI_API_KEY <your-key>
+npx convex env set DISCORD_WEBHOOK_URL <your-webhook-url>
+```
+
+Without these, the app works fine — the weekly summary card just stays empty and the nudge cron becomes a no-op.
+
+### 5. Run the app
+
+In a second terminal (alongside `npx convex dev`):
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) and sign in with GitHub.
 
-**Keep `npx convex dev` running** while working. It watches the `convex/` folder, pushes changes to your dev deployment on save, and regenerates the typed `api` object.
+## Available scripts
 
-## Seeding data
+| Command         | Purpose                                      |
+|-----------------|-----------------------------------------------|
+| `npm run dev`   | Start the Next.js dev server                  |
+| `npm run build` | Production build                              |
+| `npm run start` | Serve the production build                    |
+| `npm run lint`  | Run ESLint                                     |
+| `npx convex dev`| Push Convex functions/schema and watch for changes |
 
-Since there's no habit-creation UI yet, use the Convex dashboard at [dashboard.convex.dev](https://dashboard.convex.dev):
+## Project structure
 
-1. Open your project → Functions → `habits:createHabit` → Run function.
-2. Call it three times with example args:
-
-```json
-{ "name": "Steps",    "type": "numeric",  "target": 8000, "unit": "steps" }
-{ "name": "Sleep",    "type": "duration", "target": 7,    "unit": "hours" }
-{ "name": "Vitamins", "type": "boolean",  "target": 1 }
+```
+habit-tracker/
+├── app/
+│   ├── layout.tsx            # Root layout: fonts, metadata, auth gate
+│   ├── page.tsx               # Dashboard ("/")
+│   ├── habits/page.tsx        # Manage habits — list, add, delete
+│   ├── log/page.tsx           # Today's log — per-habit entry
+│   ├── buddy/page.tsx         # Invite / redeem / view buddy
+│   ├── summaries/page.tsx     # Weekly AI summaries history
+│   ├── components/            # App-specific React components
+│   ├── ConvexClientProvider.tsx
+│   └── globals.css            # Tailwind + design tokens
+├── components/ui/             # shadcn/ui primitives (button, card, dialog, ...)
+├── convex/
+│   ├── schema.ts               # Table definitions and indexes
+│   ├── habits.ts, logs.ts, buddies.ts, summaries.ts, notifications.ts
+│   ├── auth.ts, auth.config.ts # Convex Auth (GitHub) wiring
+│   ├── crons.ts                # Scheduled jobs
+│   ├── model/                  # Shared backend helpers (streak math, permissions)
+│   └── _generated/             # Auto-generated types/API — do not edit
+├── lib/                        # Frontend utility functions
+└── docs/                       # README assets
 ```
 
-3. Reload `localhost:3000` — the three habits appear with inputs.
+The split to remember: **everything in `convex/` runs on Convex's servers**; everything in `app/` runs in the browser (or on Next's server for SSR). The bridge is the auto-generated `api` object plus the `useQuery` / `useMutation` hooks.
 
-## The Day 1 "aha" moment
+## Data model
 
-Open `localhost:3000` in two browser windows side by side. Change a value in one — the other updates instantly, no refresh, no polling. That's Convex's reactive subscription in action: `useQuery` opened a WebSocket, the server tracked which data the query read, and when the mutation touched that data, the server re-ran the query and pushed the new result to every subscribed client.
+| Table        | Purpose                                                        | Key indexes |
+|--------------|------------------------------------------------------------------|-------------|
+| `habits`     | One row per habit a user tracks (`name`, `type`, `target`, `unit`) | `by_user` |
+| `logs`       | One row per habit per day (`date` as `YYYY-MM-DD`, `value`)      | `by_habit_and_date`, `by_user_and_date` |
+| `invites`    | Buddy invite codes (`code`, `createdBy`, `usedBy`)                | `by_code` |
+| `buddyPairs` | Confirmed buddy pairings between two users                        | `by_userA`, `by_userB` |
+| `summaries`  | Weekly AI-generated coaching summaries (`weekStart`, `text`)      | `by_user_and_week` |
 
-This is the foundation for everything coming in Days 2 and 3.
+Booleans are stored as `0`/`1` in `logs.value` so every habit type shares the same comparison logic (`value >= target`).
 
-## What's intentionally missing
+## Testing
 
-Saved for later days so each session covers new ground:
+There is no automated test suite yet. If you're adding one, [`convex-test`](https://docs.convex.dev/testing/convex-test) is the recommended way to unit-test Convex functions against a simulated backend without a live deployment.
 
-- **Auth** — hardcoded `demo-user` today; real users via Clerk on Day 3.
-- **Streaks** — no consecutive-day counting yet; that's the reactive-query showcase on Day 2.
-- **Weekly view** — Day 2.
-- **Buddy system, invites, notifications** — Day 3.
-- **Cron jobs, actions, LLM summaries** — Days 2 and 3.
-- **Real styling** — deliberately kept ugly until the data layer is solid.
+## Deployment
 
-## Convex concepts covered so far
+1. Deploy your Convex functions to production: `npx convex deploy`.
+2. Deploy the Next.js app to your host of choice (e.g. Vercel), setting `NEXT_PUBLIC_CONVEX_URL` to your production deployment URL.
+3. Set the same environment variables from steps 3–4 above on your **production** Convex deployment (`npx convex env set --prod ...`), and update the GitHub OAuth App's callback URL to match production.
 
-| Concept                          | Where it lives                          |
-|----------------------------------|-----------------------------------------|
-| Schema and validators            | `convex/schema.ts`                      |
-| Indexes                          | `convex/schema.ts`                      |
-| Query functions                  | `convex/habits.ts`                      |
-| Mutation functions (transactional) | `convex/habits.ts`                    |
-| Reactive client subscriptions    | `useQuery` in `app/page.tsx`            |
-| Optimistic mutations             | `useMutation` in `app/page.tsx`         |
-| Generated typed API              | `convex/_generated/api`                 |
-| ConvexProvider setup             | `app/providers.tsx`                     |
+## Contributing
+
+Issues and pull requests are welcome.
+
+1. Fork the repo and create a branch from `main`.
+2. Make your changes; keep `npx convex dev` running so schema/type errors surface immediately.
+3. Run `npm run lint` before opening a PR.
+4. Describe what changed and why in the PR description.
+
+## License
+
+[MIT](LICENSE)
