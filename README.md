@@ -6,7 +6,7 @@ Define habits, log them daily, watch streaks build, and pair with one accountabi
 
 ## Screenshots
 
-![Streaks dashboard](docs/screenshot.png)
+![Streaks screens](docs/Screenshot.png)
 
 ## Features
 
