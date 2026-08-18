@@ -10,7 +10,7 @@ export const logHabit = mutation({
     value: v.number(),
   },
   handler: async (ctx, { habitId, date, value }) => {
-    await assertOwnsHabit(ctx, habitId);      // 👈 ownership check
+    await assertOwnsHabit(ctx, habitId);
     const userId = await requireCurrentUserId(ctx);
 
     const existing = await ctx.db

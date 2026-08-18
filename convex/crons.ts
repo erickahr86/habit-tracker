@@ -9,4 +9,10 @@ crons.hourly(
   internal.notifications.checkAndNudge,
 );
 
+crons.weekly(
+  "weekly summary",
+  { dayOfWeek: "sunday", hourUTC: 22, minuteUTC: 0 },
+  internal.summaries.generateWeeklyForAllUsers,
+);
+
 export default crons;

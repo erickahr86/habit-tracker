@@ -46,6 +46,8 @@ function Dashboard() {
     <main className="p-8 max-w-xl mx-auto space-y-4">
       <WeeklySummary />
 
+      <NewHabitForm />
+      
       <h1 className="text-2xl font-bold">Today — {today}</h1>
       {habits.map((h) => (
         <HabitRow key={h._id} habit={h} today={today} logs={logs} />
@@ -124,5 +126,67 @@ function WeeklySummary() {
       </div>
       <p className="text-sm text-blue-900 mt-1">{summary.text}</p>
     </div>
+  );
+}
+
+function NewHabitForm() {
+  const createHabit = useMutation(api.habits.createHabit);
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"numeric" | "boolean" | "duration">("numeric");
+  const [target, setTarget] = useState(1);
+  const [unit, setUnit] = useState("");
+
+  return (
+    <form
+      className="border p-4 rounded space-y-2"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (!name) return;
+        await createHabit({
+          name,
+          type,
+          target,
+          unit: unit || undefined,
+        });
+        setName("");
+        setUnit("");
+        setTarget(1);
+      }}
+    >
+      <div className="font-semibold">New habit</div>
+      <input
+        className="border px-2 py-1 w-full"
+        placeholder="Name (e.g. Steps)"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <div className="flex gap-2">
+        <select
+          className="border px-2 py-1"
+          value={type}
+          onChange={(e) => setType(e.target.value as any)}
+        >
+          <option value="numeric">Numeric</option>
+          <option value="duration">Duration</option>
+          <option value="boolean">Boolean</option>
+        </select>
+        <input
+          type="number"
+          className="border px-2 py-1 w-24"
+          placeholder="Target"
+          value={target}
+          onChange={(e) => setTarget(Number(e.target.value))}
+        />
+        <input
+          className="border px-2 py-1 flex-1"
+          placeholder="Unit (optional)"
+          value={unit}
+          onChange={(e) => setUnit(e.target.value)}
+        />
+      </div>
+      <button className="border px-3 py-1 rounded" type="submit">
+        Add habit
+      </button>
+    </form>
   );
 }

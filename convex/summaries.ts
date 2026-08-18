@@ -97,3 +97,21 @@ export const latestSummary = query({
       .first();
   },
 });
+
+export const generateWeeklyForAllUsers = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.runQuery(internal.summaries.allUserIds, {});
+    for (const userId of users) {
+      await ctx.runAction(internal.summaries.generateWeeklyForUser, { userId });
+    }
+  },
+});
+
+export const allUserIds = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    return users.map((u) => u._id);
+  },
+});
