@@ -19,6 +19,7 @@ import type * as model_habits from "../model/habits.js";
 import type * as model_permissions from "../model/permissions.js";
 import type * as model_users from "../model/users.js";
 import type * as notifications from "../notifications.js";
+import type * as seed from "../seed.js";
 import type * as summaries from "../summaries.js";
 
 import type {
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   "model/permissions": typeof model_permissions;
   "model/users": typeof model_users;
   notifications: typeof notifications;
+  seed: typeof seed;
   summaries: typeof summaries;
 }>;
 
