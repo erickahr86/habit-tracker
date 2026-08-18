@@ -4,6 +4,10 @@ A habit tracker with an accountability buddy, built with [Convex](https://convex
 
 Log daily habits, watch your streaks grow, and pair with one buddy who sees your progress live and gets nudged when you slip.
 
+## Screenshots
+
+![Streaks dashboard](docs/screenshot.png)
+
 ## Stack
 
 - **Backend:** Convex (reactive database, server functions, scheduled jobs)

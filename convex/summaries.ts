@@ -98,6 +98,18 @@ export const latestSummary = query({
   },
 });
 
+export const listAllSummaries = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireCurrentUserId(ctx);
+    return await ctx.db
+      .query("summaries")
+      .withIndex("by_user_and_week", (q) => q.eq("userId", userId))
+      .order("desc")
+      .collect();
+  },
+});
+
 export const generateWeeklyForAllUsers = internalAction({
   args: {},
   handler: async (ctx) => {

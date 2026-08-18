@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { requireCurrentUserId } from "./model/users";
 import { assertOwnsHabit } from "./model/permissions";
-import { toDateString, daysBefore, hitTarget } from "./model/habits";
+import { toDateString, daysBefore, hitTarget, computeStreak } from "./model/habits";
 import strict from "node:assert/strict";
 
 export const createHabit = mutation({
@@ -40,35 +40,81 @@ export const currentStreak = query({
     await assertOwnsHabit(ctx, habitId);
     const habit = await ctx.db.get(habitId);
     if (!habit) return 0;
+    return computeStreak(ctx, habit);
+  },
+});
+
+export const dashboardStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireCurrentUserId(ctx);
+    const habits = await ctx.db
+      .query("habits")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
 
     const today = toDateString(new Date());
-    let streak = 0;
-    let cursorDate = today;
+    const logsToday = await ctx.db
+      .query("logs")
+      .withIndex("by_user_and_date", (q) =>
+        q.eq("userId", userId).eq("date", today),
+      )
+      .collect();
 
-    // Walk backwards day by day until we find a day that wasn't hit.
-    // Cap at 365 for safety.
-    for (let i = 0; i < 365; i++) {
-      const log = await ctx.db
-        .query("logs")
-        .withIndex("by_habit_and_date", (q) =>
-          q.eq("habitId", habitId).eq("date", cursorDate),
-        )
-        .unique();
+    const totalHabits = habits.length;
+    const hitToday = habits.filter((h) => {
+      const log = logsToday.find((l) => l.habitId === h._id);
+      return log ? hitTarget(h.target, log.value) : false;
+    }).length;
 
-      const hit = log ? hitTarget(habit.target, log.value) : false;
-
-      if (!hit) {
-        // Special case: today not yet logged shouldn't break the streak.
-        // Only break if the missing day is *before* today.
-        if (cursorDate !== today) break;
-      } else {
-        streak++;
-      }
-
-      cursorDate = daysBefore(cursorDate, 1);
+    let longestStreak = 0;
+    for (const habit of habits) {
+      const streak = await computeStreak(ctx, habit);
+      if (streak > longestStreak) longestStreak = streak;
     }
 
-    return streak;
+    // Week completion: Monday of this week through today, inclusive.
+    const dayOfWeek = new Date(today + "T00:00:00Z").getUTCDay(); // 0=Sun,1=Mon,...
+    const daysSinceMonday = (dayOfWeek + 6) % 7;
+    const weekDates: string[] = [];
+    for (let i = daysSinceMonday; i >= 0; i--) {
+      weekDates.push(daysBefore(today, i));
+    }
+
+    const totalCells = habits.length * weekDates.length;
+    let hitCells = 0;
+    for (const habit of habits) {
+      for (const date of weekDates) {
+        const log = await ctx.db
+          .query("logs")
+          .withIndex("by_habit_and_date", (q) =>
+            q.eq("habitId", habit._id).eq("date", date),
+          )
+          .unique();
+        if (log && hitTarget(habit.target, log.value)) hitCells++;
+      }
+    }
+    const weekCompletion =
+      totalCells > 0 ? Math.round((hitCells / totalCells) * 100) : 0;
+
+    return { longestStreak, hitToday, totalHabits, weekCompletion };
+  },
+});
+
+export const deleteHabit = mutation({
+  args: { habitId: v.id("habits") },
+  handler: async (ctx, { habitId }) => {
+    await assertOwnsHabit(ctx, habitId);
+
+    const logs = await ctx.db
+      .query("logs")
+      .withIndex("by_habit_and_date", (q) => q.eq("habitId", habitId))
+      .collect();
+    for (const log of logs) {
+      await ctx.db.delete(log._id);
+    }
+
+    await ctx.db.delete(habitId);
   },
 });
 
